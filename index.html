@@ -1,84 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Text to Voice + Recorder</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Text to Voice Recorder</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 2rem;
-    }
-    textarea {
-      width: 90%;
-      max-width: 600px;
-      height: 100px;
-      font-size: 1.2rem;
+      padding: 20px;
     }
     button {
       margin: 10px;
-      padding: 10px 20px;
-      font-size: 1rem;
+      padding: 15px 25px;
+      font-size: 16px;
     }
     audio {
       margin-top: 20px;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <h2>🗣️ Text to Voice & Recorder</h2>
-  <textarea id="text" placeholder="Enter text to speak..."></textarea><br/>
-  <button onclick="speak()">🔊 Speak</button>
-  <button onclick="startRecording()">🎙️ Record</button>
-  <button onclick="stopRecording()">⏹️ Stop</button>
-  <a id="downloadLink" style="display:none;" download="voice.wav">⬇️ Download Recording</a>
-  <br/>
-  <audio id="audio" controls style="display:none;"></audio>
+
+  <h2>🎙️ Voice Recorder</h2>
+
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop Recording</button>
+  <a id="downloadLink" style="display:none;" download="recording.webm">Download Recording</a>
+
+  <audio id="audioPlayer" controls></audio>
 
   <script>
     let mediaRecorder;
     let recordedChunks = [];
 
-    function speak() {
-      const text = document.getElementById("text").value;
-      const utterance = new SpeechSynthesisUtterance(text);
-      speechSynthesis.speak(utterance);
-    }
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const downloadLink = document.getElementById('downloadLink');
 
-    async function startRecording() {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: false });
-      mediaRecorder = new MediaRecorder(stream);
-
+    startBtn.addEventListener('click', async () => {
       recordedChunks = [];
 
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunks.push(event.data);
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: "audio/wav" });
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
-
-        const audio = document.getElementById("audio");
-        audio.src = url;
-        audio.style.display = "block";
-
-        const downloadLink = document.getElementById("downloadLink");
+        audioPlayer.src = url;
         downloadLink.href = url;
-        downloadLink.style.display = "inline-block";
+        downloadLink.style.display = 'inline';
       };
 
       mediaRecorder.start();
-      alert("Recording started...");
-    }
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      downloadLink.style.display = 'none';
+    });
 
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-        alert("Recording stopped. Ready to download.");
-      }
-    }
+    stopBtn.addEventListener('click', () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
   </script>
+
 </body>
 </html>
