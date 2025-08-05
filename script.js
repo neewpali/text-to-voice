@@ -1,73 +1,41 @@
-const synth = window.speechSynthesis;
-const voiceSelect = document.getElementById("voiceSelect");
-const textArea = document.getElementById("text");
-let voices = [];
-
-function populateVoices() {
-  voices = synth.getVoices();
-  voiceSelect.innerHTML = '';
-  
-  voices.forEach((voice, index) => {
-    const option = document.createElement("option");
-    option.value = index;
-    // Map voice names to "celebrity-style" tags
-    let label = voice.name;
-    if (voice.name.includes("Google हिन्दी")) label = "📢 Bollywood (Hindi Male)";
-    else if (voice.name.includes("Google UK English Male")) label = "🎬 Hollywood (Male - Morgan)";
-    else if (voice.name.includes("Google US English Female")) label = "🎤 Pop Star (Female)";
-    option.textContent = `${label} (${voice.lang})`;
-    voiceSelect.appendChild(option);
-  });
+// ========== TEXT TO SPEECH ==========
+function speakText() {
+  const text = document.getElementById("text-input").value;
+  const utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(utterance);
 }
 
-populateVoices();
-if (speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = populateVoices;
-}
-
-function speak() {
-  const text = textArea.value;
-  if (!text) return alert("Please enter some text.");
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.voice = voices[voiceSelect.value];
-  synth.speak(utter);
-}
-
-// RECORDING
+// ========== VOICE RECORDER ==========
 let mediaRecorder;
 let audioChunks = [];
 
-function startRecording() {
-  const stream = document.querySelector('audio').captureStream?.();
-  if (!stream) {
-    alert("Recording requires Chrome or modern browser.");
-    return;
-  }
+const startBtn = document.getElementById("start-record");
+const stopBtn = document.getElementById("stop-record");
+const downloadLink = document.getElementById("download-link");
 
+startBtn.onclick = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
-  mediaRecorder.start();
   audioChunks = [];
 
-  mediaRecorder.ondataavailable = e => {
-    audioChunks.push(e.data);
+  mediaRecorder.ondataavailable = event => {
+    audioChunks.push(event.data);
   };
 
   mediaRecorder.onstop = () => {
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    const player = document.getElementById("audioPlayer");
-    player.src = url;
-    player.style.display = "block";
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "voice-output.webm";
-    a.click();
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    downloadLink.href = audioUrl;
+    downloadLink.style.display = "inline-block";
   };
-}
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-  }
-}
+  mediaRecorder.start();
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+};
+
+stopBtn.onclick = () => {
+  mediaRecorder.stop();
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+};
