@@ -1,77 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Text to Voice Recorder</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Free Voice Tool</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
+      font-family: sans-serif;
       padding: 20px;
+      background: #f4f4f4;
+      color: #333;
     }
-    button {
-      margin: 10px;
-      padding: 15px 25px;
+    h1 {
+      text-align: center;
+      font-size: 24px;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      resize: vertical;
+    }
+    label, select, input[type=range] {
+      display: block;
+      margin-bottom: 10px;
       font-size: 16px;
     }
-    audio {
-      margin-top: 20px;
-      width: 100%;
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    @media (max-width: 600px) {
+      button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
 
-  <h2>🎙️ Voice Recorder</h2>
+<h1>🎤 Free Text to Voice Tool</h1>
 
-  <button id="startBtn">Start Recording</button>
-  <button id="stopBtn" disabled>Stop Recording</button>
-  <a id="downloadLink" style="display:none;" download="recording.webm">Download Recording</a>
+<textarea id="textInput" placeholder="Enter your text here..."></textarea>
 
-  <audio id="audioPlayer" controls></audio>
+<label for="language">🌐 Language:</label>
+<select id="language">
+  <option value="en-US">English (US)</option>
+  <option value="hi-IN">Hindi (India)</option>
+</select>
 
-  <script>
-    let mediaRecorder;
-    let recordedChunks = [];
+<label for="pitch">🎵 Pitch: <span id="pitchVal">1</span></label>
+<input type="range" id="pitch" min="0" max="2" step="0.1" value="1" />
 
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const downloadLink = document.getElementById('downloadLink');
+<label for="rate">⏩ Speed: <span id="rateVal">1</span></label>
+<input type="range" id="rate" min="0.1" max="3" step="0.1" value="1" />
 
-    startBtn.addEventListener('click', async () => {
-      recordedChunks = [];
+<div class="controls">
+  <button onclick="speak()">🔊 Speak</button>
+  <button onclick="repeat()">🔁 Repeat</button>
+  <button onclick="copyText()">📋 Copy</button>
+  <button onclick="downloadText()">⬇️ Download</button>
+  <button onclick="clearText()">🧹 Clear</button>
+</div>
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
+<script>
+  let utterance = new SpeechSynthesisUtterance();
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunks.push(event.data);
-        }
-      };
+  const textInput = document.getElementById("textInput");
+  const langSelect = document.getElementById("language");
+  const pitchInput = document.getElementById("pitch");
+  const rateInput = document.getElementById("rate");
+  const pitchVal = document.getElementById("pitchVal");
+  const rateVal = document.getElementById("rateVal");
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-        audioPlayer.src = url;
-        downloadLink.href = url;
-        downloadLink.style.display = 'inline';
-      };
+  let lastText = "";
 
-      mediaRecorder.start();
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      downloadLink.style.display = 'none';
-    });
+  function speak() {
+    const text = textInput.value.trim();
+    if (!text) return alert("Please enter some text!");
+    lastText = text;
+    utterance.text = text;
+    utterance.lang = langSelect.value;
+    utterance.pitch = parseFloat(pitchInput.value);
+    utterance.rate = parseFloat(rateInput.value);
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }
 
-    stopBtn.addEventListener('click', () => {
-      mediaRecorder.stop();
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-    });
-  </script>
+  function repeat() {
+    if (!lastText) return alert("No previous speech found.");
+    utterance.text = lastText;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }
+
+  function copyText() {
+    navigator.clipboard.writeText(textInput.value)
+      .then(() => alert("Copied to clipboard!"));
+  }
+
+  function downloadText() {
+    const text = textInput.value;
+    const blob = new Blob([text], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "text.txt";
+    a.click();
+  }
+
+  function clearText() {
+    textInput.value = "";
+  }
+
+  pitchInput.oninput = () => pitchVal.textContent = pitchInput.value;
+  rateInput.oninput = () => rateVal.textContent = rateInput.value;
+</script>
 
 </body>
 </html>
