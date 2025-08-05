@@ -1,138 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Free Voice Tool</title>
+  <meta charset="UTF-8">
+  <title>Text to Voice Tool</title>
   <style>
     body {
       font-family: sans-serif;
+      max-width: 500px;
+      margin: auto;
       padding: 20px;
-      background: #f4f4f4;
-      color: #333;
-    }
-    h1 {
       text-align: center;
-      font-size: 24px;
     }
     textarea {
       width: 100%;
-      height: 120px;
+      height: 100px;
+    }
+    select, button {
+      margin: 10px;
       padding: 10px;
-      margin-bottom: 15px;
-      font-size: 16px;
-      resize: vertical;
-    }
-    label, select, input[type=range] {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    button {
-      padding: 10px 15px;
-      margin: 5px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
-    }
-    @media (max-width: 600px) {
-      button {
-        width: 100%;
-      }
+      width: 100%;
     }
   </style>
 </head>
 <body>
+  <h2>🎙️ Text to Voice Tool</h2>
+  <textarea id="text" placeholder="Enter text here..."></textarea>
+  <select id="voices"></select>
+  <button onclick="speakText()">🔊 Speak</button>
+  <button onclick="stopSpeaking()">⛔ Stop</button>
+  <button onclick="startRecording()">⏺️ Start Recording</button>
+  <button onclick="stopRecording()">⏹️ Stop Recording</button>
+  <a id="downloadLink" style="display:none;" download="tts_recording.wav">⬇️ Download</a>
 
-<h1>🎤 Free Text to Voice Tool</h1>
+  <script>
+    const synth = window.speechSynthesis;
+    const voiceSelect = document.getElementById('voices');
+    let voices = [];
 
-<textarea id="textInput" placeholder="Enter your text here..."></textarea>
+    function loadVoices() {
+      voices = synth.getVoices();
+      voiceSelect.innerHTML = '';
+      voices.forEach((voice, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
+      });
+    }
 
-<label for="language">🌐 Language:</label>
-<select id="language">
-  <option value="en-US">English (US)</option>
-  <option value="hi-IN">Hindi (India)</option>
-</select>
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
 
-<label for="pitch">🎵 Pitch: <span id="pitchVal">1</span></label>
-<input type="range" id="pitch" min="0" max="2" step="0.1" value="1" />
+    function speakText() {
+      const text = document.getElementById('text').value;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = voices[voiceSelect.value];
+      synth.speak(utter);
+    }
 
-<label for="rate">⏩ Speed: <span id="rateVal">1</span></label>
-<input type="range" id="rate" min="0.1" max="3" step="0.1" value="1" />
+    function stopSpeaking() {
+      synth.cancel();
+    }
 
-<div class="controls">
-  <button onclick="speak()">🔊 Speak</button>
-  <button onclick="repeat()">🔁 Repeat</button>
-  <button onclick="copyText()">📋 Copy</button>
-  <button onclick="downloadText()">⬇️ Download</button>
-  <button onclick="clearText()">🧹 Clear</button>
-</div>
+    // --- Recording the speech ---
+    let mediaRecorder;
+    let audioChunks = [];
 
-<script>
-  let utterance = new SpeechSynthesisUtterance();
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
 
-  const textInput = document.getElementById("textInput");
-  const langSelect = document.getElementById("language");
-  const pitchInput = document.getElementById("pitch");
-  const rateInput = document.getElementById("rate");
-  const pitchVal = document.getElementById("pitchVal");
-  const rateVal = document.getElementById("rateVal");
+      mediaRecorder.ondataavailable = e => {
+        audioChunks.push(e.data);
+      };
 
-  let lastText = "";
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = url;
+        downloadLink.style.display = 'block';
+      };
 
-  function speak() {
-    const text = textInput.value.trim();
-    if (!text) return alert("Please enter some text!");
-    lastText = text;
-    utterance.text = text;
-    utterance.lang = langSelect.value;
-    utterance.pitch = parseFloat(pitchInput.value);
-    utterance.rate = parseFloat(rateInput.value);
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  }
+      mediaRecorder.start();
+      alert("Recording started...");
+    }
 
-  function repeat() {
-    if (!lastText) return alert("No previous speech found.");
-    utterance.text = lastText;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  }
-
-  function copyText() {
-    navigator.clipboard.writeText(textInput.value)
-      .then(() => alert("Copied to clipboard!"));
-  }
-
-  function downloadText() {
-    const text = textInput.value;
-    const blob = new Blob([text], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "text.txt";
-    a.click();
-  }
-
-  function clearText() {
-    textInput.value = "";
-  }
-
-  pitchInput.oninput = () => pitchVal.textContent = pitchInput.value;
-  rateInput.oninput = () => rateVal.textContent = rateInput.value;
-</script>
-
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        alert("Recording stopped.");
+      }
+    }
+  </script>
 </body>
 </html>
