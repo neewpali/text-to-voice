@@ -1,106 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Text to Voice Tool</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f0f0f0;
-      text-align: center;
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-      font-size: 16px;
-      padding: 10px;
-      resize: none;
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    audio {
-      margin-top: 20px;
-      width: 100%;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Voice Recorder</title>
 </head>
 <body>
-
-  <h2>🗣️ Text to Voice Tool</h2>
-
-  <textarea id="textInput" placeholder="Enter text here..."></textarea><br/>
-
-  <button onclick="speakText()">Speak</button>
-  <button onclick="startRecording()">🎙️ Start Recording</button>
-  <button onclick="stopRecording()">🛑 Stop</button>
-  <button onclick="downloadRecording()">⬇️ Download</button>
-
-  <audio id="audioPlayer" controls></audio>
+  <h2>Voice Recorder</h2>
+  <button id="start">Start Recording</button>
+  <button id="stop" disabled>Stop Recording</button>
+  <a id="downloadLink" style="display:none;">Download</a>
 
   <script>
-    let synth = window.speechSynthesis;
     let mediaRecorder;
-    let recordedChunks = [];
+    let audioChunks = [];
 
-    function speakText() {
-      const text = document.getElementById("textInput").value;
-      const utterance = new SpeechSynthesisUtterance(text);
-      synth.speak(utterance);
-    }
-
-    async function startRecording() {
+    document.getElementById("start").onclick = async function () {
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-        recordedChunks = [];
+        mediaRecorder.start();
+        audioChunks = [];
 
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) recordedChunks.push(e.data);
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
         };
 
         mediaRecorder.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+          const blob = new Blob(audioChunks, { type: 'audio/wav' });
           const url = URL.createObjectURL(blob);
-          document.getElementById("audioPlayer").src = url;
-          document.getElementById("audioPlayer").play();
+          const downloadLink = document.getElementById('downloadLink');
+          downloadLink.href = url;
+          downloadLink.download = 'recording.wav';
+          downloadLink.textContent = 'Download Recording';
+          downloadLink.style.display = 'inline';
         };
 
-        mediaRecorder.start();
-        alert("Recording started!");
-      } catch (err) {
-        alert("Recording failed: " + err.message);
+        document.getElementById("start").disabled = true;
+        document.getElementById("stop").disabled = false;
+      } catch (error) {
+        alert("Microphone access denied or not supported.");
+        console.error(error);
       }
-    }
+    };
 
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-        alert("Recording stopped.");
-      } else {
-        alert("No active recording.");
-      }
-    }
-
-    function downloadRecording() {
-      if (recordedChunks.length === 0) {
-        alert("Nothing to download.");
-        return;
-      }
-
-      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'recording.webm';
-      a.click();
-    }
+    document.getElementById("stop").onclick = function () {
+      mediaRecorder.stop();
+      document.getElementById("start").disabled = false;
+      document.getElementById("stop").disabled = true;
+    };
   </script>
-
 </body>
 </html>
