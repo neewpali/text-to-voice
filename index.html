@@ -2,28 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>🎤 Text to Voice Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <title>Voice Recorder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎤 Text to Voice</h1>
-    <textarea id="text" placeholder="Type or paste your text here... (English or Hindi)"></textarea>
-    
-    <select id="voiceSelect">
-      <option disabled selected>Loading voices...</option>
-    </select>
-    
-    <div class="buttons">
-      <button onclick="speak()">🔊 Speak</button>
-      <button onclick="startRecording()">🔴 Record</button>
-      <button onclick="stopRecording()">⏹️ Stop & Download</button>
-    </div>
+  <h2>🎤 Record Your Voice</h2>
 
-    <audio id="audioPlayer" controls style="display:none;"></audio>
-  </div>
-  
-  <script src="script.js"></script>
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop Recording</button>
+  <a id="downloadLink" style="display: none;" download="recording.webm">⬇️ Download Recording</a>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const downloadLink = document.getElementById('downloadLink');
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        downloadLink.href = url;
+        downloadLink.style.display = 'inline';
+      };
+
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      downloadLink.style.display = 'none';
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+  </script>
 </body>
 </html>
