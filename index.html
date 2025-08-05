@@ -1,55 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Text to Voice</title>
+  <meta charset="UTF-8">
+  <title>Text to Voice Tool</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    textarea {
+      width: 90%;
+      height: 100px;
+      margin: 10px 0;
+    }
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Text to Voice Converter</h2>
 
-  <textarea id="text" rows="4" cols="50" placeholder="Enter text here..."></textarea><br>
+  <h2>🎤 Text to Voice Tool</h2>
+
+  <textarea id="text" placeholder="Enter text here..."></textarea><br>
 
   <label for="voiceSelect">Select Voice:</label>
   <select id="voiceSelect"></select><br><br>
 
-  <button onclick="speak()">Speak</button>
-  <button onclick="stop()">Stop</button>
+  <button onclick="speak()">🔊 Speak</button>
+  <button onclick="stop()">🛑 Stop</button>
 
   <script>
-    const voiceSelect = document.getElementById("voiceSelect");
+    const synth = window.speechSynthesis;
+    const voiceSelect = document.getElementById('voiceSelect');
     let voices = [];
 
-    function loadVoices() {
-      voices = speechSynthesis.getVoices();
+    function populateVoices() {
+      voices = synth.getVoices();
 
+      // Clear previous options
       voiceSelect.innerHTML = '';
+
       voices.forEach((voice, i) => {
-        const option = document.createElement("option");
+        const option = document.createElement('option');
         option.value = i;
-        option.text = `${voice.name} (${voice.lang}) ${voice.default ? "[default]" : ""}`;
+
+        // Filter voices based on gender
+        if (voice.name.toLowerCase().includes('male')) {
+          option.textContent = `${voice.name} (Male)`;
+        } else if (voice.name.toLowerCase().includes('female')) {
+          option.textContent = `${voice.name} (Female)`;
+        } else {
+          option.textContent = `${voice.name} (Other)`;
+        }
+
         voiceSelect.appendChild(option);
       });
     }
 
-    // Some browsers (like Chrome) load voices asynchronously
+    // Check if the voices are ready
     if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
+      speechSynthesis.onvoiceschanged = populateVoices;
+    } else {
+      populateVoices();
     }
 
     function speak() {
-      const text = document.getElementById("text").value;
-      const selectedVoice = voices[voiceSelect.value];
+      const text = document.getElementById('text').value;
+      const selectedVoiceIndex = voiceSelect.value;
       const utterance = new SpeechSynthesisUtterance(text);
 
-      utterance.voice = selectedVoice;
-      speechSynthesis.speak(utterance);
+      utterance.voice = voices[selectedVoiceIndex];
+      synth.speak(utterance);
     }
 
     function stop() {
-      speechSynthesis.cancel();
+      synth.cancel();
     }
-
-    // Initial call
-    loadVoices();
   </script>
+
 </body>
 </html>
