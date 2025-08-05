@@ -1,71 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Text to Voice (Free, Male/Female)</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      text-align: center;
-    }
-    textarea {
-      width: 90%;
-      height: 100px;
-      margin: 10px 0;
-    }
-    select, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-    }
-  </style>
+  <title>Text to Voice</title>
 </head>
 <body>
-  <h1>🎤 Free Text to Voice Tool</h1>
+  <h2>Text to Voice Converter</h2>
 
-  <textarea id="textInput" placeholder="Type something to speak..."></textarea><br>
+  <textarea id="text" rows="4" cols="50" placeholder="Enter text here..."></textarea><br>
 
-  <select id="voiceSelect"></select><br>
+  <label for="voiceSelect">Select Voice:</label>
+  <select id="voiceSelect"></select><br><br>
 
-  <button onclick="speak()">🔊 Speak</button>
-  <button onclick="stop()">🛑 Stop</button>
+  <button onclick="speak()">Speak</button>
+  <button onclick="stop()">Stop</button>
 
   <script>
-    const synth = window.speechSynthesis;
-    const voiceSelect = document.getElementById('voiceSelect');
+    const voiceSelect = document.getElementById("voiceSelect");
     let voices = [];
 
-    function populateVoices() {
-      voices = synth.getVoices();
+    function loadVoices() {
+      voices = speechSynthesis.getVoices();
 
       voiceSelect.innerHTML = '';
       voices.forEach((voice, i) => {
-        const option = document.createElement('option');
+        const option = document.createElement("option");
         option.value = i;
-        option.textContent = `${voice.name} (${voice.lang}) - ${voice.gender || ''}`;
-        if (voice.name.toLowerCase().includes("female")) option.textContent += " 👩";
-        if (voice.name.toLowerCase().includes("male")) option.textContent += " 👨";
+        option.text = `${voice.name} (${voice.lang}) ${voice.default ? "[default]" : ""}`;
         voiceSelect.appendChild(option);
       });
     }
 
-    populateVoices();
+    // Some browsers (like Chrome) load voices asynchronously
     if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = populateVoices;
+      speechSynthesis.onvoiceschanged = loadVoices;
     }
 
     function speak() {
-      const text = document.getElementById('textInput').value;
+      const text = document.getElementById("text").value;
+      const selectedVoice = voices[voiceSelect.value];
       const utterance = new SpeechSynthesisUtterance(text);
-      const selectedVoiceIndex = voiceSelect.value;
-      utterance.voice = voices[selectedVoiceIndex];
-      synth.speak(utterance);
+
+      utterance.voice = selectedVoice;
+      speechSynthesis.speak(utterance);
     }
 
     function stop() {
-      synth.cancel();
+      speechSynthesis.cancel();
     }
+
+    // Initial call
+    loadVoices();
   </script>
 </body>
 </html>
