@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎤 Text to Voice Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Text to Voice</h1>
+    <textarea id="text" placeholder="Type or paste your text here... (English or Hindi)"></textarea>
+    
+    <select id="voiceSelect">
+      <option disabled selected>Loading voices...</option>
+    </select>
+    
+    <div class="buttons">
+      <button onclick="speak()">🔊 Speak</button>
+      <button onclick="startRecording()">🔴 Record</button>
+      <button onclick="stopRecording()">⏹️ Stop & Download</button>
+    </div>
+
+    <audio id="audioPlayer" controls style="display:none;"></audio>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
