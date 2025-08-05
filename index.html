@@ -2,52 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Voice Recorder</title>
+  <title>Text to Voice (Free, Male/Female)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    textarea {
+      width: 90%;
+      height: 100px;
+      margin: 10px 0;
+    }
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Voice Recorder</h2>
-  <button id="start">Start Recording</button>
-  <button id="stop" disabled>Stop Recording</button>
-  <a id="downloadLink" style="display:none;">Download</a>
+  <h1>🎤 Free Text to Voice Tool</h1>
+
+  <textarea id="textInput" placeholder="Type something to speak..."></textarea><br>
+
+  <select id="voiceSelect"></select><br>
+
+  <button onclick="speak()">🔊 Speak</button>
+  <button onclick="stop()">🛑 Stop</button>
 
   <script>
-    let mediaRecorder;
-    let audioChunks = [];
+    const synth = window.speechSynthesis;
+    const voiceSelect = document.getElementById('voiceSelect');
+    let voices = [];
 
-    document.getElementById("start").onclick = async function () {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.start();
-        audioChunks = [];
+    function populateVoices() {
+      voices = synth.getVoices();
 
-        mediaRecorder.ondataavailable = event => {
-          audioChunks.push(event.data);
-        };
+      voiceSelect.innerHTML = '';
+      voices.forEach((voice, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${voice.name} (${voice.lang}) - ${voice.gender || ''}`;
+        if (voice.name.toLowerCase().includes("female")) option.textContent += " 👩";
+        if (voice.name.toLowerCase().includes("male")) option.textContent += " 👨";
+        voiceSelect.appendChild(option);
+      });
+    }
 
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: 'audio/wav' });
-          const url = URL.createObjectURL(blob);
-          const downloadLink = document.getElementById('downloadLink');
-          downloadLink.href = url;
-          downloadLink.download = 'recording.wav';
-          downloadLink.textContent = 'Download Recording';
-          downloadLink.style.display = 'inline';
-        };
+    populateVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
 
-        document.getElementById("start").disabled = true;
-        document.getElementById("stop").disabled = false;
-      } catch (error) {
-        alert("Microphone access denied or not supported.");
-        console.error(error);
-      }
-    };
+    function speak() {
+      const text = document.getElementById('textInput').value;
+      const utterance = new SpeechSynthesisUtterance(text);
+      const selectedVoiceIndex = voiceSelect.value;
+      utterance.voice = voices[selectedVoiceIndex];
+      synth.speak(utterance);
+    }
 
-    document.getElementById("stop").onclick = function () {
-      mediaRecorder.stop();
-      document.getElementById("start").disabled = false;
-      document.getElementById("stop").disabled = true;
-    };
+    function stop() {
+      synth.cancel();
+    }
   </script>
 </body>
 </html>
