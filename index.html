@@ -1,86 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Text to Voice Tool</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       padding: 20px;
-      text-align: center;
+      background: #f0f0f0;
     }
-    textarea {
-      width: 90%;
-      height: 100px;
+    textarea, select, button {
+      width: 100%;
       margin: 10px 0;
-    }
-    select, button {
-      padding: 10px;
-      margin: 5px;
       font-size: 16px;
+      padding: 10px;
     }
   </style>
 </head>
 <body>
+  <h2>🎤 Text to Voice Converter (Free)</h2>
+  <textarea id="text" rows="5" placeholder="Enter your text here..."></textarea>
 
-  <h2>🎤 Text to Voice Tool</h2>
+  <label for="voiceSelect">Choose Voice (Gender):</label>
+  <select id="voiceSelect"></select>
 
-  <textarea id="text" placeholder="Enter text here..."></textarea><br>
-
-  <label for="voiceSelect">Select Voice:</label>
-  <select id="voiceSelect"></select><br><br>
-
-  <button onclick="speak()">🔊 Speak</button>
-  <button onclick="stop()">🛑 Stop</button>
+  <button onclick="speakText()">▶️ Play</button>
+  <button onclick="stopSpeech()">⏹️ Stop</button>
+  <button onclick="downloadAudio()">⬇️ Download MP3</button>
 
   <script>
-    const synth = window.speechSynthesis;
-    const voiceSelect = document.getElementById('voiceSelect');
+    let synth = window.speechSynthesis;
     let voices = [];
+    let utterance;
+    let selectedVoice;
 
     function populateVoices() {
       voices = synth.getVoices();
-
-      // Clear previous options
-      voiceSelect.innerHTML = '';
+      const select = document.getElementById('voiceSelect');
+      select.innerHTML = '';
 
       voices.forEach((voice, i) => {
         const option = document.createElement('option');
         option.value = i;
-
-        // Filter voices based on gender
-        if (voice.name.toLowerCase().includes('male')) {
-          option.textContent = `${voice.name} (Male)`;
-        } else if (voice.name.toLowerCase().includes('female')) {
-          option.textContent = `${voice.name} (Female)`;
-        } else {
-          option.textContent = `${voice.name} (Other)`;
-        }
-
-        voiceSelect.appendChild(option);
+        option.textContent = `${voice.name} (${voice.lang}) - ${voice.gender || (voice.name.toLowerCase().includes("female") ? "Female" : "Male")}`;
+        select.appendChild(option);
       });
     }
 
-    // Check if the voices are ready
+    populateVoices();
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = populateVoices;
-    } else {
-      populateVoices();
     }
 
-    function speak() {
+    function speakText() {
       const text = document.getElementById('text').value;
-      const selectedVoiceIndex = voiceSelect.value;
-      const utterance = new SpeechSynthesisUtterance(text);
+      if (!text) return;
 
-      utterance.voice = voices[selectedVoiceIndex];
+      utterance = new SpeechSynthesisUtterance(text);
+      const selectedIndex = document.getElementById('voiceSelect').value;
+      selectedVoice = voices[selectedIndex];
+      if (selectedVoice) utterance.voice = selectedVoice;
+
       synth.speak(utterance);
     }
 
-    function stop() {
+    function stopSpeech() {
       synth.cancel();
     }
-  </script>
 
+    async function downloadAudio() {
+      const text = document.getElementById("text").value;
+      if (!text) return alert("Please enter some text first.");
+
+      const blob = await synthToBlob(text);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "speech.mp3";
+      a.click();
+    }
+
+    async function synthToBlob(text) {
+      return new Promise((resolve) => {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.voice = voices[document.getElementById('voiceSelect').value];
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const dest = audioCtx.createMediaStreamDestination();
+        const recorder = new MediaRecorder(dest.stream);
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "audio/mp3" });
+          resolve(blob);
+        };
+
+        const source = audioCtx.createMediaStreamSource(dest.stream);
+        source.connect(audioCtx.destination); // Output audio
+        recorder.start();
+        synth.speak(utter);
+
+        utter.onend = () => {
+          recorder.stop();
+        };
+      });
+    }
+  </script>
 </body>
 </html>
